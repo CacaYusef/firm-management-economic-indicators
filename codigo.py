@@ -33,11 +33,18 @@ caminho_empresas = diretorio_base / "dados" / "Empresas.xlsx"
 # Importa a planilha
 empresas = pd.read_excel(caminho_empresas)
 <<<<<<< HEAD
+<<<<<<< HEAD
 empresas.info(memory_usage = 'deep') # examinando o tipo de arquivo de cada coluna
 empresas.describe()
 =======
 empresas.info()
 >>>>>>> a0c32affef9c8a722a9a1130740780c6ce388f20
+=======
+empresas.info(memory_usage = 'deep') # examinando o tipo de arquivo de cada coluna
+empresas.describe()
+empresas.info()
+
+>>>>>>> 7969967 (a)
 
 # Planilha de empresas sem dados faltantes na coluna "talent6"
 empresas = empresas.dropna(subset=['talent6'])
@@ -46,17 +53,27 @@ empresas = empresas.dropna(subset=['talent6'])
 
 # PASSO 3 (Criando as colunas: operations, monitor, people & target. Colunas essas que serão uma média dos critérios semelhantes entre as várias colunas
 <<<<<<< HEAD
+<<<<<<< HEAD
 # o objetivo aqui é filtrar todos os caras que são parecidos, e guardar em uma unica coluna para cada critéria, que será a média geral)
 
 
 =======
+=======
+
+# o objetivo aqui é filtrar todos os caras que são parecidos, e guardar em uma unica coluna para cada critéria, que será a média geral)
+
+>>>>>>> 7969967 (a)
 # o objetivo aqui é filtrar todos os caras que são parecidos, e guardarem em uma unica coluna q é a média geral)
 
 
 # Mandando o Python fazer uma lista com o nome das colunas da database que estou trabalhando, aqui meio que funciona como uma "seleção" do que quero mexer
 # Para depois com os objetos que criei, usar metodos para tirar algumas medidas de estatística descritiva
 
+<<<<<<< HEAD
 >>>>>>> a0c32affef9c8a722a9a1130740780c6ce388f20
+=======
+
+>>>>>>> 7969967 (a)
 coluna_operations = ["lean1", "lean2"]
 
 coluna_monitor = ["perf1", "perf2", "perf3", "perf4", "perf5"]
@@ -66,6 +83,9 @@ coluna_people = ["talent1", "talent2", "talent3", "talent4", "talent5", "talent6
 coluna_target = ["perf6", "perf7", "perf8", "perf9", "perf10"]
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 7969967 (a)
 
 def médias_colunas(dados, critério):    # <- criando função para tirar média das colunas 
     return dados[critério].mean(axis=1).round(2) # <- o mean axis = 1 faz o python tirar a média linha por linha
@@ -79,7 +99,10 @@ empresas["management"] = empresas[["operations", "monitor", "people", "target"]]
 
 
 
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> 7969967 (a)
 empresas["operations"] = empresas[coluna_operations].mean(axis=1).round(2) # <-- axis=1 aqui faz com que o python calcule linha por linha, diferente de axis=0, que calcula média da amostra total da coluna
 empresas["monitor"] = empresas[coluna_monitor].mean(axis=1).round(2)
 empresas["people"] = empresas[coluna_people].mean(axis=1).round(2)
@@ -87,7 +110,11 @@ empresas["target"] = empresas[coluna_target].mean(axis=1).round(2)
 empresas["management"] = empresas[["operations", "monitor", "people", "target"]].mean(axis=1).round(2)
 
 
+<<<<<<< HEAD
 >>>>>>> a0c32affef9c8a722a9a1130740780c6ce388f20
+=======
+
+>>>>>>> 7969967 (a)
 # PASSO 4 (preparando tabela para rankear os países de acordo com cada critério)
 
 
@@ -135,12 +162,21 @@ separações = np.linspace(1, 5, 26) # Definindo que o histograma vai de 1 a 5 d
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 def filtrar_empresas_por_pais(dados, país):
     return dados[dados["country"] == país]["management"].dropna()
 =======
 def filtrar_empresas_por_pais(tabela, país):
     return tabela[tabela["country"] == país]["management"].dropna()
 >>>>>>> a0c32affef9c8a722a9a1130740780c6ce388f20
+=======
+def filtrar_empresas_por_pais(dados, país):
+    return dados[dados["country"] == país]["management"].dropna()
+
+def filtrar_empresas_por_pais(tabela, país):
+    return tabela[tabela["country"] == país]["management"].dropna()
+
+>>>>>>> 7969967 (a)
 
 # Pegando a média das empresas de cada país, e transformando num vetor
 brasil_empresas = filtrar_empresas_por_pais(médias_por_critério, "Brazil") # Vendo a distribuição de management quando country == Brazil
@@ -299,6 +335,7 @@ cores = {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 labels = list(dados_paises.keys()) # pegando as chaves do dicionario países para definir as legendas
 dados = list(dados_paises.values()) # pegando os valores do dicionario países
 posicoes = np.arange(1, len(labels) + 1) # posicionando cada boxplot
@@ -307,6 +344,17 @@ labels = list(dados_paises.keys())
 dados = list(dados_paises.values())
 posicoes = np.arange(1, len(labels) + 1)
 >>>>>>> a0c32affef9c8a722a9a1130740780c6ce388f20
+=======
+
+labels = list(dados_paises.keys()) # pegando as chaves do dicionario países para definir as legendas
+dados = list(dados_paises.values()) # pegando os valores do dicionario países
+posicoes = np.arange(1, len(labels) + 1) # posicionando cada boxplot
+
+labels = list(dados_paises.keys())
+dados = list(dados_paises.values())
+posicoes = np.arange(1, len(labels) + 1)
+
+>>>>>>> 7969967 (a)
 
 boxplot = ax.boxplot(dados, labels=labels, patch_artist=True, widths=0.5,
     flierprops=dict(
@@ -351,6 +399,9 @@ plt.show()
 # Passo 9 Medindo a confiabilidade dos Dados
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 7969967 (a)
 paises = [
     "Brazil",
     "United States",
@@ -398,11 +449,14 @@ tabela_confianca["limite_superior_95"] = (
 tabela_confianca = tabela_confianca.round(3)
 
 tabela_confianca
+<<<<<<< HEAD
 =======
 
 
 
 >>>>>>> a0c32affef9c8a722a9a1130740780c6ce388f20
+=======
+>>>>>>> 7969967 (a)
 
 
 
