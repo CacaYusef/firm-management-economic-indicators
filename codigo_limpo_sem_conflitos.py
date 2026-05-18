@@ -32,19 +32,9 @@ caminho_empresas = diretorio_base / "dados" / "Empresas.xlsx"
 
 # Importa a planilha
 empresas = pd.read_excel(caminho_empresas)
-<<<<<<< HEAD
-<<<<<<< HEAD
-empresas.info(memory_usage = 'deep') # examinando o tipo de arquivo de cada coluna
-empresas.describe()
-=======
-empresas.info()
->>>>>>> a0c32affef9c8a722a9a1130740780c6ce388f20
-=======
-empresas.info(memory_usage = 'deep') # examinando o tipo de arquivo de cada coluna
+empresas.info(memory_usage='deep') # examinando o tipo de arquivo de cada coluna
 empresas.describe()
 empresas.info()
-
->>>>>>> 7969967 (a)
 
 # Planilha de empresas sem dados faltantes na coluna "talent6"
 empresas = empresas.dropna(subset=['talent6'])
@@ -52,28 +42,12 @@ empresas = empresas.dropna(subset=['talent6'])
 
 
 # PASSO 3 (Criando as colunas: operations, monitor, people & target. Colunas essas que serão uma média dos critérios semelhantes entre as várias colunas
-<<<<<<< HEAD
-<<<<<<< HEAD
 # o objetivo aqui é filtrar todos os caras que são parecidos, e guardar em uma unica coluna para cada critéria, que será a média geral)
-
-
-=======
-=======
-
-# o objetivo aqui é filtrar todos os caras que são parecidos, e guardar em uma unica coluna para cada critéria, que será a média geral)
-
->>>>>>> 7969967 (a)
-# o objetivo aqui é filtrar todos os caras que são parecidos, e guardarem em uma unica coluna q é a média geral)
 
 
 # Mandando o Python fazer uma lista com o nome das colunas da database que estou trabalhando, aqui meio que funciona como uma "seleção" do que quero mexer
 # Para depois com os objetos que criei, usar metodos para tirar algumas medidas de estatística descritiva
 
-<<<<<<< HEAD
->>>>>>> a0c32affef9c8a722a9a1130740780c6ce388f20
-=======
-
->>>>>>> 7969967 (a)
 coluna_operations = ["lean1", "lean2"]
 
 coluna_monitor = ["perf1", "perf2", "perf3", "perf4", "perf5"]
@@ -82,13 +56,10 @@ coluna_people = ["talent1", "talent2", "talent3", "talent4", "talent5", "talent6
 
 coluna_target = ["perf6", "perf7", "perf8", "perf9", "perf10"]
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 7969967 (a)
 
 def médias_colunas(dados, critério):    # <- criando função para tirar média das colunas 
     return dados[critério].mean(axis=1).round(2) # <- o mean axis = 1 faz o python tirar a média linha por linha
+
 
 empresas["operations"] = médias_colunas(empresas, coluna_operations) 
 empresas['monitor'] = médias_colunas(empresas, coluna_monitor)  
@@ -98,23 +69,6 @@ empresas["management"] = empresas[["operations", "monitor", "people", "target"]]
 
 
 
-
-<<<<<<< HEAD
-=======
-=======
->>>>>>> 7969967 (a)
-empresas["operations"] = empresas[coluna_operations].mean(axis=1).round(2) # <-- axis=1 aqui faz com que o python calcule linha por linha, diferente de axis=0, que calcula média da amostra total da coluna
-empresas["monitor"] = empresas[coluna_monitor].mean(axis=1).round(2)
-empresas["people"] = empresas[coluna_people].mean(axis=1).round(2)
-empresas["target"] = empresas[coluna_target].mean(axis=1).round(2)
-empresas["management"] = empresas[["operations", "monitor", "people", "target"]].mean(axis=1).round(2)
-
-
-<<<<<<< HEAD
->>>>>>> a0c32affef9c8a722a9a1130740780c6ce388f20
-=======
-
->>>>>>> 7969967 (a)
 # PASSO 4 (preparando tabela para rankear os países de acordo com cada critério)
 
 
@@ -122,7 +76,7 @@ médias_por_critério = empresas[["country", "operations", "monitor", "people", 
 
 ranking_países = médias_por_critério.groupby("country").mean(numeric_only=True).round(2)
 
-ranking_ordenado = ranking_países.sort_values(by=["management"], ascending = True)
+ranking_ordenado = ranking_países.sort_values(by=["management"], ascending=True)
 
 
 # PASSO 5 (Plotando os valores dos países em um gráfico de colunas)
@@ -144,7 +98,7 @@ plt.tick_params(axis="y", labelsize=9)
 plt.tick_params(axis="x", labelsize=10)
 
 # Título e rótulo do eixo x
-plt.title("Qualidade média da administração por país", fontsize=14, loc = "center")
+plt.title("Qualidade média da administração por país", fontsize=14, loc="center")
 plt.xlabel("Nota média de administração", fontsize=12)
 
 # Deixa espaço à esquerda para os nomes dos países
@@ -161,22 +115,9 @@ plt.show()
 separações = np.linspace(1, 5, 26) # Definindo que o histograma vai de 1 a 5 dividido em 25 pedaçinhos ( intervalos de 0.2 em 0.2)
 
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-def filtrar_empresas_por_pais(dados, país):
-    return dados[dados["country"] == país]["management"].dropna()
-=======
-def filtrar_empresas_por_pais(tabela, país):
-    return tabela[tabela["country"] == país]["management"].dropna()
->>>>>>> a0c32affef9c8a722a9a1130740780c6ce388f20
-=======
-def filtrar_empresas_por_pais(dados, país):
-    return dados[dados["country"] == país]["management"].dropna()
-
 def filtrar_empresas_por_pais(tabela, país):
     return tabela[tabela["country"] == país]["management"].dropna()
 
->>>>>>> 7969967 (a)
 
 # Pegando a média das empresas de cada país, e transformando num vetor
 brasil_empresas = filtrar_empresas_por_pais(médias_por_critério, "Brazil") # Vendo a distribuição de management quando country == Brazil
@@ -193,6 +134,7 @@ Estados_Unidos_empresas = filtrar_empresas_por_pais(médias_por_critério, "Unit
 
 def calcular_pesos(dados):
     return np.ones(len(dados)) / len(dados) # fração 1/n empresas <- peso para cada empresa no gráfico
+
 
 pesos_brasil = calcular_pesos(brasil_empresas) 
 pesos_india = calcular_pesos(india_empresas)
@@ -219,7 +161,9 @@ ax1.hist(india_empresas,
          bins=separações,
          weights=pesos_india, 
          alpha=0.6, 
-         label="India",color="#d65a31",edgecolor="black")
+         label="India",
+         color="#d65a31",
+         edgecolor="black")
 
 legenda_plot1 = ax1.legend(loc="upper right", fontsize=6)
 ax1.set_title("Distribuição proporcional das empresas\npor nota Brasil x Índia", fontsize=7.5)
@@ -264,7 +208,8 @@ ax2.yaxis.set_major_formatter(PercentFormatter(1.0))
 ax3.hist(brasil_empresas, 
          bins=separações, 
          weights=pesos_brasil,
-         alpha=0.7,label="Brazil",
+         alpha=0.7,
+         label="Brazil",
          color="#6cc47c",
          edgecolor="black")
 
@@ -276,7 +221,7 @@ ax3.hist(Reino_Unido_empresas,
          color="#11149e",
          edgecolor="black")
 
-legenda_plot3 = ax3.legend(loc="upper right", fontsize= 6)
+legenda_plot3 = ax3.legend(loc="upper right", fontsize=6)
 ax3.set_title("Distribuição proporcional das empresas\npor nota Brasil x Reino Unido", fontsize=7.5)
 ax3.tick_params(axis="y", labelsize=6)
 
@@ -304,7 +249,7 @@ ax4.hist(Estados_Unidos_empresas,
          color="#0394fc",
          edgecolor="black")
 
-legenda_plot4 = ax4.legend(loc="upper right", fontsize= 6)
+legenda_plot4 = ax4.legend(loc="upper right", fontsize=6)
 ax4.set_title("Distribuição proporcional das empresas\npor nota Brasil x Estados Unidos", fontsize=7.5)
 ax4.tick_params(axis="y", labelsize=6)
 
@@ -334,27 +279,9 @@ cores = {
     "Mexico": "#265425"
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 labels = list(dados_paises.keys()) # pegando as chaves do dicionario países para definir as legendas
 dados = list(dados_paises.values()) # pegando os valores do dicionario países
 posicoes = np.arange(1, len(labels) + 1) # posicionando cada boxplot
-=======
-labels = list(dados_paises.keys())
-dados = list(dados_paises.values())
-posicoes = np.arange(1, len(labels) + 1)
->>>>>>> a0c32affef9c8a722a9a1130740780c6ce388f20
-=======
-
-labels = list(dados_paises.keys()) # pegando as chaves do dicionario países para definir as legendas
-dados = list(dados_paises.values()) # pegando os valores do dicionario países
-posicoes = np.arange(1, len(labels) + 1) # posicionando cada boxplot
-
-labels = list(dados_paises.keys())
-dados = list(dados_paises.values())
-posicoes = np.arange(1, len(labels) + 1)
-
->>>>>>> 7969967 (a)
 
 boxplot = ax.boxplot(dados, labels=labels, patch_artist=True, widths=0.5,
     flierprops=dict(
@@ -379,7 +306,7 @@ for caixa, mediana, pais in zip(boxplot["boxes"], boxplot["medians"], labels):
 for posicao, pais in zip(posicoes, labels):
     valores = dados_paises[pais]
 
-    jitter = np.random.normal(loc=posicao,scale=0.05,size=len(valores))
+    jitter = np.random.normal(loc=posicao, scale=0.05, size=len(valores))
 
     ax.scatter(jitter, valores, color=cores[pais],
         alpha=0.10, 
@@ -398,10 +325,6 @@ plt.show()
 
 # Passo 9 Medindo a confiabilidade dos Dados
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 7969967 (a)
 paises = [
     "Brazil",
     "United States",
@@ -449,16 +372,3 @@ tabela_confianca["limite_superior_95"] = (
 tabela_confianca = tabela_confianca.round(3)
 
 tabela_confianca
-<<<<<<< HEAD
-=======
-
-
-
->>>>>>> a0c32affef9c8a722a9a1130740780c6ce388f20
-=======
->>>>>>> 7969967 (a)
-
-
-
-
-
