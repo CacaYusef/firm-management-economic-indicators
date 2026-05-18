@@ -261,6 +261,8 @@ ax4.yaxis.set_major_formatter(PercentFormatter(1.0))
 
 # PASSO 8 BOX PLOT <- Para scatter plot precisei do amigo chat
 
+
+
 fig, ax = plt.subplots(figsize=(8, 6))
 
 dados_paises = {
@@ -325,6 +327,8 @@ plt.show()
 
 # Passo 9 Medindo a confiabilidade dos Dados
 
+
+
 paises = [
     "Brazil",
     "United States",
@@ -348,27 +352,66 @@ tabela_confianca = (
     .reset_index()
 )
 
-tabela_confianca["erro_padrao"] = (
-    tabela_confianca["desvio_padrao"] / np.sqrt(tabela_confianca["numero_firmas"])
-)
+tabela_confianca["erro_padrao"] = (tabela_confianca["desvio_padrao"] / np.sqrt(tabela_confianca["numero_firmas"]))
 
-tabela_confianca["t_critico"] = stats.t.ppf(
-    0.975,
-    df=tabela_confianca["numero_firmas"] - 1
-)
+tabela_confianca["t_critico"] = stats.t.ppf(0.975,df=tabela_confianca["numero_firmas"] - 1)
 
-tabela_confianca["margem_erro_95"] = (
-    tabela_confianca["t_critico"] * tabela_confianca["erro_padrao"]
-)
+tabela_confianca["margem_erro_95"] = (tabela_confianca["t_critico"] * tabela_confianca["erro_padrao"])
 
-tabela_confianca["limite_inferior_95"] = (
-    tabela_confianca["media"] - tabela_confianca["margem_erro_95"]
-)
+tabela_confianca["limite_inferior_95"] = (tabela_confianca["media"] - tabela_confianca["margem_erro_95"])
 
-tabela_confianca["limite_superior_95"] = (
-    tabela_confianca["media"] + tabela_confianca["margem_erro_95"]
-)
+tabela_confianca["limite_superior_95"] = (tabela_confianca["media"] + tabela_confianca["margem_erro_95"])
 
 tabela_confianca = tabela_confianca.round(3)
 
 tabela_confianca
+
+
+# passo 10 Vendo se há diferenças de eficiencia de gestão dada diferentes niveis de competitividade
+# e diferentes tipos de "onwers" da empresa
+
+
+def tabela_condicional(dados, grupo, variavel):
+    tabela = (
+        dados
+        .groupby(["country", grupo])[variavel]
+        .agg(
+            media="mean",
+            desvio_padrao="std",
+            numero_firmas="count"
+        )
+        .reset_index()
+    )
+
+    tabela["erro_padrao"] = (tabela["desvio_padrao"] / np.sqrt(tabela["numero_firmas"]))
+
+    tabela["t_critico"] = stats.t.ppf(0.975,df=tabela["numero_firmas"] - 1)
+
+    tabela["margem_erro_95"] = (tabela["t_critico"] * tabela["erro_padrao"])
+
+    tabela["limite_inferior_95"] = (tabela["media"] - tabela["margem_erro_95"])
+
+    tabela["limite_superior_95"] = (tabela["media"] + tabela["margem_erro_95"])
+
+    return tabela.round(3)
+
+
+dados_ownership = empresas.loc[
+    empresas["country"].isin(paises),
+    ["country", "ownership", "management"]
+].dropna()
+
+
+
+tabela_management_ownership = tabela_condicional(
+    dados_ownership,
+    grupo="ownership",
+    variavel="management"
+)
+
+
+
+
+
+
+
