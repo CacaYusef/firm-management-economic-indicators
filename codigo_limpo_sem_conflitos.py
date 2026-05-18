@@ -409,7 +409,20 @@ tabela_management_ownership = tabela_condicional(
     variavel="management"
 )
 
+#
+#
 
+dados_competition = empresas.loc[
+    empresas["country"].isin(paises),
+    ["country", "competition", "management"]
+].dropna()
+
+
+tabela_management_competition = tabela_condicional(
+    dados_competition,
+    grupo="competition",
+    variavel="management"
+)
 
 
 
