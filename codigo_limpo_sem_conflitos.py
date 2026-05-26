@@ -25,7 +25,10 @@ plt.rcParams["font.family"] = "monospace"
 
 
 # Código para tornar o diretório da base de dados relativo (Executar em qualquer PC)
-diretorio_base = Path(__file__).resolve().parent
+try:
+    diretorio_base = Path(__file__).resolve().parent # Funciona quando o código está em um arquivo .py
+except NameError:
+    diretorio_base = Path.cwd() # Funciona quando o código está em um notebook Jupyter
 
 # Caminho relativo até a planilha Empresas.xlsx
 caminho_empresas = diretorio_base / "dados" / "Empresas.xlsx"
@@ -34,229 +37,205 @@ caminho_empresas = diretorio_base / "dados" / "Empresas.xlsx"
 empresas = pd.read_excel(caminho_empresas)
 empresas.info(memory_usage='deep') # examinando o tipo de arquivo de cada coluna
 empresas.describe()
-empresas.info()
+
 
 # Planilha de empresas sem dados faltantes na coluna "talent6"
-empresas = empresas.dropna(subset=['talent6'])
+# .copy() evita problemas posteriores ao criar novas colunas
+empresas = empresas.dropna(subset=["talent6"]).copy()
 
 
+# PASSO 3
 
-# PASSO 3 (Criando as colunas: operations, monitor, people & target. Colunas essas que serão uma média dos critérios semelhantes entre as várias colunas
-# o objetivo aqui é filtrar todos os caras que são parecidos, e guardar em uma unica coluna para cada critéria, que será a média geral)
+colunas_criterios = {
+    "operations": ["lean1", "lean2"],
+    "monitor": ["perf1", "perf2", "perf3", "perf4", "perf5"],
+    "people": ["talent1", "talent2", "talent3", "talent4", "talent5", "talent6"],
+    "target": ["perf6", "perf7", "perf8", "perf9", "perf10"]
+}
 
-
-# Mandando o Python fazer uma lista com o nome das colunas da database que estou trabalhando, aqui meio que funciona como uma "seleção" do que quero mexer
-# Para depois com os objetos que criei, usar metodos para tirar algumas medidas de estatística descritiva
-
-coluna_operations = ["lean1", "lean2"]
-
-coluna_monitor = ["perf1", "perf2", "perf3", "perf4", "perf5"]
-
-coluna_people = ["talent1", "talent2", "talent3", "talent4", "talent5", "talent6"]
-
-coluna_target = ["perf6", "perf7", "perf8", "perf9", "perf10"]
+def médias_colunas(dados, critério):
+    return dados[critério].mean(axis=1).round(2)
 
 
-def médias_colunas(dados, critério):    # <- criando função para tirar média das colunas 
-    return dados[critério].mean(axis=1).round(2) # <- o mean axis = 1 faz o python tirar a média linha por linha
+for nome_criterio, colunas in colunas_criterios.items():
+    empresas[nome_criterio] = médias_colunas(empresas, colunas) # loop for para tirar as médias das colunas agrupadas em "colunas_criterios"
 
 
-empresas["operations"] = médias_colunas(empresas, coluna_operations) 
-empresas['monitor'] = médias_colunas(empresas, coluna_monitor)  
-empresas['people'] = médias_colunas(empresas, coluna_people) 
-empresas['target'] = médias_colunas(empresas, coluna_target)
-empresas["management"] = empresas[["operations", "monitor", "people", "target"]].mean(axis=1).round(2)
+empresas["management"] = (empresas[["operations", "monitor", "people", "target"]].mean(axis=1).round(2)) # axis = 1 faz uma média linha a linha
+
+# PASSO 4
+
+colunas_ranking = [
+    "country","operations","monitor",
+    "people","target","management"
+]
+
+médias_por_critério = empresas.loc[:, colunas_ranking].copy()
+
+ranking_países = (médias_por_critério.groupby("country", as_index=True).mean(numeric_only=True).round(2))
+
+ranking_ordenado = ranking_países.sort_values(by="management",ascending=True)
 
 
-
-# PASSO 4 (preparando tabela para rankear os países de acordo com cada critério)
-
-
-médias_por_critério = empresas[["country", "operations", "monitor", "people", "target", "management" ]]
-
-ranking_países = médias_por_critério.groupby("country").mean(numeric_only=True).round(2)
-
-ranking_ordenado = ranking_países.sort_values(by=["management"], ascending=True)
-
-
-# PASSO 5 (Plotando os valores dos países em um gráfico de colunas)
+# PASSO 5
 
 plt.figure(figsize=(14, 6))
 
-plt.barh(
-    ranking_ordenado.index, # categoria utilizada para a plotagem do gráfico (países)
-    ranking_ordenado["management"], # critério utilizado no rankeamento
-    color="#688dd4", # cor do gráfico ¯\_(ツ)_/¯
-    height=0.6, 
+plt.barh(                      #plot gráfico de barras horizontal
+    ranking_ordenado.index,
+    ranking_ordenado["management"],
+    color="#688dd4",
+    height=0.6,
     edgecolor="black"
 )
 
-# Ajustando o tamanho dos nomes dos países
 plt.tick_params(axis="y", labelsize=9)
-
-# Ajusta os números no eixo x
 plt.tick_params(axis="x", labelsize=10)
 
-# Título e rótulo do eixo x
 plt.title("Qualidade média da administração por país", fontsize=14, loc="center")
 plt.xlabel("Nota média de administração", fontsize=12)
 
-# Deixa espaço à esquerda para os nomes dos países
 plt.subplots_adjust(left=0.35)
-
-# nota de administração das empresas, indo numa escala de 0 a 5
 plt.xlim(0, 5)
 
 plt.show()
 
 
-# Passo 6 Comparando as notas das empresas do Brasil, com a outros países
+# PASSO 6
 
-separações = np.linspace(1, 5, 26) # Definindo que o histograma vai de 1 a 5 dividido em 25 pedaçinhos ( intervalos de 0.2 em 0.2)
+separações = np.linspace(1, 5, 26)  # criando intervalos do histrograma de 1 a 5 e repartições que são de 25 pedaços iguais ( n + 1)
 
 
 def filtrar_empresas_por_pais(tabela, país):
-    return tabela[tabela["country"] == país]["management"].dropna()
+    return tabela.loc[tabela["country"].eq(país), "management"].dropna()
 
 
-# Pegando a média das empresas de cada país, e transformando num vetor
-brasil_empresas = filtrar_empresas_por_pais(médias_por_critério, "Brazil") # Vendo a distribuição de management quando country == Brazil
-india_empresas = filtrar_empresas_por_pais(médias_por_critério, "India") # Vendo a distribuição de management quando country == India
-Mexico_empresas = filtrar_empresas_por_pais(médias_por_critério, "Mexico") # Vendo a distribuição de management quando country == Mexico
-Reino_Unido_empresas = filtrar_empresas_por_pais(médias_por_critério, "Great Britain")
-Estados_Unidos_empresas = filtrar_empresas_por_pais(médias_por_critério, "United States")
+paises_para_comparar = {
+    "Brazil": "Brazil",
+    "India": "India",
+    "Mexico": "Mexico",
+    "Great Britain": "Great Britain",
+    "United States": "United States"
+}
+
+empresas_por_pais = {
+    nome_objeto: filtrar_empresas_por_pais(médias_por_critério, nome_pais)
+    for nome_objeto, nome_pais in paises_para_comparar.items()
+}
 
 
-# A partir daqui, vou transformar o número de empresas vistas em frequencia relativa, mas por que disso?
-# Bom, não faria sentido eu dizer que o Brasil é melhor que a Índia em um cenário em que o 
-# Brasil tenha 100 empresas e a Índia só 10, supondo hipotéticamente que ambos os países tenham todas as
-# Empresas com notas identicas. Logo, por frequencia, fica mais claro ver no gráfico que ambos seriam equivalentes
-
-def calcular_pesos(dados):
-    return np.ones(len(dados)) / len(dados) # fração 1/n empresas <- peso para cada empresa no gráfico
+brasil_empresas = empresas_por_pais["Brazil"] # filtrando base de dados para cada país
+india_empresas = empresas_por_pais["India"]
+Mexico_empresas = empresas_por_pais["Mexico"]
+Reino_Unido_empresas = empresas_por_pais["Great Britain"]
+Estados_Unidos_empresas = empresas_por_pais["United States"]
 
 
-pesos_brasil = calcular_pesos(brasil_empresas) 
-pesos_india = calcular_pesos(india_empresas)
-pesos_Mexico = calcular_pesos(Mexico_empresas)
-pesos_Reino_Unido = calcular_pesos(Reino_Unido_empresas)
-pesos_Estados_Unidos = calcular_pesos(Estados_Unidos_empresas)
+class ComparadorHistogramas:
+    # Classe para comparar a distribuição das notas de management entre países
 
+    def __init__(self, dados_paises, cores, separacoes, pais_base="Brazil"):
+        self.dados_paises = dados_paises
+        self.cores = cores
+        self.separacoes = separacoes
+        self.pais_base = pais_base
 
-fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2) # Quebrando o plot em 4 pedaços para 4 gráficos diferentes 
+    def calcular_pesos(self, dados):
+        # Cada observação recebe peso 1/n, para o histograma virar frequência relativa
+        if len(dados) == 0:
+            raise ValueError("A série está vazia. Verifique se o país foi filtrado corretamente.")
 
+        return np.full(len(dados), 1 / len(dados))
 
-#comparação das empresas Brasil X India em um histograma
-plt.subplots_adjust(hspace=0.50, wspace=0.25)
+    def configurar_eixo(self, ax):
+        # Configura aparência dos histogramas
+        ax.tick_params(axis="y", labelsize=6)
+        ax.tick_params(axis="x", labelsize=6)
+        ax.set_xlim(1, 5)
+        ax.yaxis.set_major_formatter(PercentFormatter(1.0))
+        ax.legend(loc="upper right", fontsize=6)
 
-ax1.hist(brasil_empresas, 
-         bins=separações, 
-         weights=pesos_brasil,
-         alpha=0.8,
-         label="Brazil",
-         color="#6cc47c",
-         edgecolor="black")
+    def plotar_comparacao(self, ax, pais_comparado, alpha_base=0.7, alpha_comparado=0.5):
+        # Busca os dados do país base e do país comparado
+        dados_base = self.dados_paises[self.pais_base]
+        dados_comparado = self.dados_paises[pais_comparado]
 
-ax1.hist(india_empresas,
-         bins=separações,
-         weights=pesos_india, 
-         alpha=0.6, 
-         label="India",
-         color="#d65a31",
-         edgecolor="black")
+        # A classe calcula os pesos internamente
+        pesos_base = self.calcular_pesos(dados_base)
+        pesos_comparado = self.calcular_pesos(dados_comparado)
 
-legenda_plot1 = ax1.legend(loc="upper right", fontsize=6)
-ax1.set_title("Distribuição proporcional das empresas\npor nota Brasil x Índia", fontsize=7.5)
-ax1.tick_params(axis="y", labelsize=6)
+        ax.hist(
+            dados_base,
+            bins=self.separacoes,
+            weights=pesos_base,
+            alpha=alpha_base,
+            label=self.pais_base,
+            color=self.cores[self.pais_base],
+            edgecolor="black"
+        )
 
-ax1.tick_params(axis="x", labelsize=6)
-ax1.set_xlim(1, 5)
-ax1.yaxis.set_major_formatter(PercentFormatter(1.0)) # <- usando pacote que importei para formar em %
+        ax.hist(
+            dados_comparado,
+            bins=self.separacoes,
+            weights=pesos_comparado,
+            alpha=alpha_comparado,
+            label=pais_comparado,
+            color=self.cores[pais_comparado],
+            edgecolor="black"
+        )
 
-#
-#
+        ax.set_title(
+            f"Distribuição proporcional das empresas\npor nota {self.pais_base} x {pais_comparado}", #usando f print para não ter trabalho de fazer na mão os titulos
+            fontsize=7.5
+        )
 
-#comparação das empresas Brasil X Mexico em um histograma
-ax2.hist(brasil_empresas, 
-         bins=separações, 
-         weights=pesos_brasil,
-         alpha=0.7,
-         label="Brazil",
-         color="#6cc47c",
-         edgecolor="black")
+        self.configurar_eixo(ax)
 
-ax2.hist(Mexico_empresas,
-         bins=separações,
-         weights=pesos_Mexico, 
-         alpha=0.5, 
-         label="Mexico",
-         color="#265425",
-         edgecolor="black")
+    def plotar_grade(self, comparacoes):
+        # Cria a grade 2x2 de gráficos
+        fig, axes = plt.subplots(2, 2)
 
-legenda_plot2 = ax2.legend(loc="upper right", fontsize=6)
-ax2.set_title("Distribuição proporcional das empresas\npor nota Brasil x Mexico", fontsize=7.5)
-ax2.tick_params(axis="y", labelsize=6)
+        # Transforma a matriz 2x2 em uma lista que me permite usar loop for
+        axes = axes.flatten()
 
-ax2.tick_params(axis="x", labelsize=6)
-ax2.set_xlim(1, 5)
-ax2.yaxis.set_major_formatter(PercentFormatter(1.0)) 
+        fig.subplots_adjust(hspace=0.50, wspace=0.25)
 
-#
-#
+        for ax, pais in zip(axes, comparacoes):
+            self.plotar_comparacao(ax, pais)
 
-#comparação das empresas Brasil X Reino Unido em um histograma
-ax3.hist(brasil_empresas, 
-         bins=separações, 
-         weights=pesos_brasil,
-         alpha=0.7,
-         label="Brazil",
-         color="#6cc47c",
-         edgecolor="black")
+        plt.show()
+        
+dados_paises = {
+    "Brazil": brasil_empresas,
+    "India": india_empresas,
+    "Mexico": Mexico_empresas,
+    "Reino Unido": Reino_Unido_empresas,
+    "Estados Unidos": Estados_Unidos_empresas
+}
 
-ax3.hist(Reino_Unido_empresas,
-         bins=separações,
-         weights=pesos_Reino_Unido, 
-         alpha=0.5, 
-         label="UK",
-         color="#11149e",
-         edgecolor="black")
+cores = {
+    "Brazil": "#6cc47c",
+    "India": "#d65a31",
+    "Mexico": "#265425",
+    "Reino Unido": "#11149e",
+    "Estados Unidos": "#0394fc"
+}
 
-legenda_plot3 = ax3.legend(loc="upper right", fontsize=6)
-ax3.set_title("Distribuição proporcional das empresas\npor nota Brasil x Reino Unido", fontsize=7.5)
-ax3.tick_params(axis="y", labelsize=6)
+comparador = ComparadorHistogramas(
+    dados_paises=dados_paises,
+    cores=cores,
+    separacoes=separações,
+    pais_base="Brazil"
+)
 
-ax3.tick_params(axis="x", labelsize=6)
-ax3.set_xlim(1, 5)
-ax3.yaxis.set_major_formatter(PercentFormatter(1.0)) 
+comparacoes = [
+    "India",
+    "Mexico",
+    "Reino Unido",
+    "Estados Unidos"
+]
 
-#
-#
-
-#comparação das empresas Brasil X Estados Unidos em um histograma
-ax4.hist(brasil_empresas, 
-         bins=separações, 
-         weights=pesos_brasil,
-         alpha=0.7,
-         label="Brazil",
-         color="#6cc47c",
-         edgecolor="black")
-
-ax4.hist(Estados_Unidos_empresas,
-         bins=separações,
-         weights=pesos_Estados_Unidos,
-         alpha=0.5, 
-         label="US",
-         color="#0394fc",
-         edgecolor="black")
-
-legenda_plot4 = ax4.legend(loc="upper right", fontsize=6)
-ax4.set_title("Distribuição proporcional das empresas\npor nota Brasil x Estados Unidos", fontsize=7.5)
-ax4.tick_params(axis="y", labelsize=6)
-
-ax4.tick_params(axis="x", labelsize=6)
-ax4.set_xlim(1, 5)
-ax4.yaxis.set_major_formatter(PercentFormatter(1.0)) 
-
+comparador.plotar_grade(comparacoes)
 
 
 # PASSO 8 BOX PLOT <- Para scatter plot precisei do amigo chat
@@ -265,25 +244,10 @@ ax4.yaxis.set_major_formatter(PercentFormatter(1.0))
 
 fig, ax = plt.subplots(figsize=(8, 6))
 
-dados_paises = {
-    "Brazil": brasil_empresas,
-    "US": Estados_Unidos_empresas,
-    "UK": Reino_Unido_empresas,
-    "India": india_empresas,
-    "Mexico": Mexico_empresas
-}
-
-cores = {
-    "Brazil": "#6cc47c",
-    "US": "#0394fc",
-    "UK": "#11149e",
-    "India": "#d65a31",
-    "Mexico": "#265425"
-}
 
 labels = list(dados_paises.keys()) # pegando as chaves do dicionario países para definir as legendas
 dados = list(dados_paises.values()) # pegando os valores do dicionario países
-posicoes = np.arange(1, len(labels) + 1) # posicionando cada boxplot
+posicoes = np.arange(1, len(labels) + 1) # posicionando cada boxplot baseado na ordem do dicionario países
 
 boxplot = ax.boxplot(dados, labels=labels, patch_artist=True, widths=0.5,
     flierprops=dict(
@@ -325,8 +289,8 @@ ax.grid(axis="y", alpha=0.3)
 
 plt.show()
 
-# Passo 9 Medindo a confiabilidade dos Dados
 
+# Passo 9 Medindo a confiabilidade dos Dados
 
 
 paises = [
@@ -402,15 +366,12 @@ dados_ownership = empresas.loc[
 ].dropna()
 
 
-
 tabela_management_ownership = tabela_condicional(
     dados_ownership,
     grupo="ownership",
     variavel="management"
 )
 
-#
-#
 
 dados_competition = empresas.loc[
     empresas["country"].isin(paises),
