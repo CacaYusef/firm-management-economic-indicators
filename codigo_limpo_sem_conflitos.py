@@ -100,7 +100,8 @@ plt.xlim(0, 5)
 plt.show()
 
 
-# PASSO 6 - Criando Histogramas para comparar a distribuição das notas 
+# PASSO 6 - Criando Histogramas para comparar a distribuição das notas
+# Aqui irei importar  a classe "Histrogramas" que possui as funções definidas nela
 
 separações = np.linspace(1, 5, 26)  # criando intervalos do histrograma de 1 a 5 e repartições que são de 25 pedaços iguais ( n + 1)
 
