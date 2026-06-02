@@ -4,9 +4,12 @@ Created on Sat Apr 25 14:41:11 2026
 
 @author: Cacob
 """
+# ==========
 # PASSO 1
+# ==========
 
 
+from Regressoes import preparar_management_pais_ano, rodar_modelo_management_macro
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,14 +17,13 @@ from pathlib import Path
 import scipy.stats as stats
 from Histogramas import ComparadorHistogramas
 
-
 plt.style.use("ggplot")
 plt.rcParams["font.family"] = "monospace"
 
 
-
+# ========================================================
 # PASSO 2 (Setando o python pra funfar com esses dados)
-
+# ========================================================
 
 # Código para tornar o diretório da base de dados relativo (Executar em qualquer PC)
 try:
@@ -31,19 +33,91 @@ except NameError:
 
 # Caminho relativo até a planilha Empresas.xlsx
 caminho_empresas = diretorio_base / "dados" / "Empresas.xlsx"
+caminho_macro = diretorio_base / "dados" / "world_bank_data_2025.csv"
 
 # Importa a planilha
 empresas = pd.read_excel(caminho_empresas)
 empresas.info(memory_usage='deep') # examinando o tipo de arquivo de cada coluna
-empresas.describe()
 
+paises_dados = pd.read_csv(caminho_macro)
+paises_dados.info(memory_usage = " deep ")
+
+
+
+# tratando a base de dados macroeconomica
+
+paises_dados["year"] = paises_dados["year"].astype("int16")
+
+colunas_float32 = [
+    "Inflation (CPI %)",
+    "GDP (Current USD)",
+    "GDP per Capita (Current USD)",
+    "Unemployment Rate (%)",
+    "Interest Rate (Real, %)",
+    "Inflation (GDP Deflator, %)",
+    "GDP Growth (% Annual)",
+    "Current Account Balance (% GDP)",
+    "Government Expense (% of GDP)",
+    "Government Revenue (% of GDP)",
+    "Tax Revenue (% of GDP)",
+    "Gross National Income (USD)",
+    "Public Debt (% of GDP)"
+]
+
+for coluna in colunas_float32:
+    paises_dados[coluna] = paises_dados[coluna].astype("float32")
+
+paises_dados = paises_dados.drop(columns=["Inflation (GDP Deflator, %)"])
+
+paises_dados_limpo = paises_dados.copy()
+
+paises_dados_limpo.columns = (
+    paises_dados_limpo.columns
+    .str.replace(r"\s*\([^)]*\)", "", regex=True)
+    .str.strip()
+)
+
+
+paises_dados_limpo.rename(columns = {"country_name": "country"}, inplace = True)
+
+paises_dados_limpo.info(memory_usage = "deep")
+
+condicoes = [
+    (paises_dados_limpo["GDP per Capita"] > 1) & (paises_dados_limpo["GDP per Capita"] <= 8000),
+    (paises_dados_limpo["GDP per Capita"] > 8000) & (paises_dados_limpo["GDP per Capita"] <= 16000),
+    (paises_dados_limpo["GDP per Capita"] > 16000) & (paises_dados_limpo["GDP per Capita"] <= 30000),
+    (paises_dados_limpo["GDP per Capita"] > 30000)
+]
+
+categorias = ["baixo", "medio", "alto", "muito alto"]
+
+paises_dados_limpo["nível_pib_per_capita"] = np.select(
+    condicoes,
+    categorias,
+    default="sem_classificação"
+)
 
 # Planilha de empresas sem dados faltantes na coluna "talent6"
 # .copy() evita problemas posteriores ao criar novas colunas
 empresas = empresas.dropna(subset=["talent6"]).copy()
 
 
+
+
+
+
+
+
+
+
+
+
+
+# ==========
 # PASSO 3
+# ==========
+
+empresas.rename(columns = {"wave": "year"}, inplace = True)
 
 colunas_criterios = {
     "operations": ["lean1", "lean2"],
@@ -62,10 +136,12 @@ for nome_criterio, colunas in colunas_criterios.items():
 
 empresas["management"] = (empresas[["operations", "monitor", "people", "target"]].mean(axis=1).round(2)) # axis = 1 faz uma média linha a linha
 
+# ==========
 # PASSO 4
+# ==========
 
 colunas_ranking = [
-    "country","operations","monitor",
+    "country","year","operations", "monitor",
     "people","target","management"
 ]
 
@@ -75,8 +151,9 @@ ranking_países = (médias_por_critério.groupby("country", as_index=True).mean(
 
 ranking_ordenado = ranking_países.sort_values(by="management",ascending=True)
 
-
+# ==========
 # PASSO 5
+# ==========
 
 plt.figure(figsize=(14, 6))
 
@@ -99,9 +176,11 @@ plt.xlim(0, 5)
 
 plt.show()
 
-
+# =====================================================================
 # PASSO 6 - Criando Histogramas para comparar a distribuição das notas
 # Aqui irei importar  a classe "Histrogramas" que possui as funções definidas nela
+# =====================================================================
+
 
 separações = np.linspace(1, 5, 26)  # criando intervalos do histrograma de 1 a 5 e repartições que são de 25 pedaços iguais ( n + 1)
 
@@ -163,8 +242,9 @@ comparacoes = [
 
 comparador.plotar_grade(comparacoes)
 
-
+# ============================================================
 # PASSO 8 BOX PLOT <- Para scatter plot precisei do amigo chat
+# ============================================================
 
 fig, ax = plt.subplots(figsize=(8, 6))
 
@@ -213,9 +293,9 @@ ax.grid(axis="y", alpha=0.3)
 
 plt.show()
 
-
+# ==========================================
 # Passo 9 Medindo a confiabilidade dos Dados
-
+# ==========================================
 
 paises = [
     "Brazil",
@@ -254,10 +334,11 @@ tabela_confianca = tabela_confianca.round(3)
 
 tabela_confianca
 
-
-# passo 10 Vendo se há diferenças de eficiencia de gestão dada diferentes niveis de competitividade
+# ============================================================
+# passo 10 Vendo se há diferenças de eficiencia de gestão dada
+# diferentes niveis de competitividade
 # e diferentes tipos de "onwers" da empresa
-
+# ============================================================
 
 def tabela_condicional(dados, grupo, variavel):
     tabela = (
@@ -309,7 +390,167 @@ tabela_management_competition = tabela_condicional(
     variavel="management"
 )
 
+# ===============================================================
+# preparando base de dados que será usada para a regressão linear
+# ===============================================================
 
 
+management_pais_ano = (
+    médias_por_critério
+    .groupby(["country", "year"], as_index=False)
+    .agg(
+        management_medio=("management", "mean"),
+        operations_medio=("operations", "mean"),
+        monitor_medio=("monitor", "mean"),
+        people_medio=("people", "mean"),
+        target_medio=("target", "mean"),
+        desvio_management=("management", "std"),
+        numero_firmas=("management", "count")
+    )
+)
+# ================
+#
+# ================
+macro_modelo = paises_dados_limpo.copy()
 
+# Garantindo que os nomes das colunas não tenham espaços escondidos
+macro_modelo.columns = macro_modelo.columns.str.strip()
+
+# Padronizando year
+macro_modelo["year"] = pd.to_numeric(macro_modelo["year"]).astype("Int16")
+
+# Padronizando country
+macro_modelo["country"] = (
+    macro_modelo["country"]
+    .astype(str)
+    .str.strip()
+)
+
+# Ajustando nomes diferentes entre as bases
+mapa_paises = {
+    "United Kingdom": "Great Britain",
+    "UK": "Great Britain",
+    "United States of America": "United States",
+    "USA": "United States"
+}
+
+macro_modelo["country"] = macro_modelo["country"].replace(mapa_paises)
+
+# Garantindo que GDP per Capita está numérico
+macro_modelo["GDP per Capita"] = pd.to_numeric(macro_modelo["GDP per Capita"])
+
+# Mantendo só as colunas necessárias para a regressão
+macro_modelo = macro_modelo[["country", "year", "GDP per Capita", "nível_pib_per_capita"]].copy()
+
+print("Base macro para modelo:")
+print(macro_modelo.head())
+
+# ============================================================
+# PASSO 11 - Merge Bases
+# ============================================================
+
+merge_diagnostico = management_pais_ano.merge(
+    macro_modelo,
+    on=["country", "year"],
+    how="outer",
+    indicator=True
+)
+
+# ============================================================
+# PASSO 12 - Base final para regressão
+# ============================================================
+
+base_modelo = management_pais_ano.merge(
+    macro_modelo,
+    on=["country", "year"],
+    how="inner",
+    validate="one_to_one"
+)
+
+# Removendo linhas sem GDP per capita ou sem management
+base_modelo = base_modelo.dropna(
+    subset=["GDP per Capita", "management_medio"]
+).copy()
+
+# Criando log do PIB per capita
+base_modelo["log_gdp_per_capita"] = np.log(base_modelo["GDP per Capita"])
+
+print("Base final do modelo:")
+print(base_modelo.head())
+
+print("\nDimensão da base final:")
+print(base_modelo.shape)
+
+print("\nPaíses presentes na base final:")
+print(base_modelo["country"].unique())
+
+# ============================================================
+# PASSO 13 - Correlação simples
+# ============================================================
+
+correlacao = base_modelo["management_medio"].corr(
+    base_modelo["log_gdp_per_capita"]
+)
+
+print("Correlação entre management médio e log do PIB per capita:")
+print(correlacao)
+
+# ============================================================
+# PASSO 14 - Regressão linear simples
+# ============================================================
+
+# ============================================================
+# 1. Agregar management para país-ano
+# ============================================================
+
+import importlib
+import Regressoes
+importlib.reload(Regressoes) # sem isso eu não estava conseguindo importar meu pacote por algum motivo.
+
+management_pais_ano = preparar_management_pais_ano(médias_por_critério)
+
+# ============================================================
+# MODELO 1 - PIB per capita e management
+# ============================================================
+
+base_pib, modelo_pib = rodar_modelo_management_macro(
+    dados_management=management_pais_ano,
+    dados_macro=paises_dados_limpo,
+    coluna_macro="GDP per Capita",
+    nome_modelo="log_gdp_per_capita",
+    titulo_grafico="Gestão média e PIB per capita",
+    rotulo_y="Log do PIB per capita",
+    transformar_log=True
+)
+
+
+# ============================================================
+# MODELO 2 - Desemprego e management
+# ============================================================
+
+base_desemprego, modelo_desemprego = rodar_modelo_management_macro(
+    dados_management=management_pais_ano,
+    dados_macro=paises_dados_limpo,
+    coluna_macro="Unemployment Rate",
+    nome_modelo="taxa_desemprego",
+    titulo_grafico="Gestão média e taxa de desemprego",
+    rotulo_y="Taxa de desemprego (%)",
+    transformar_log=False
+)
+
+
+# ============================================================
+# MODELO 3 - Inflação e management
+# ============================================================
+
+
+base_inflacao, modelo_inflacao = rodar_modelo_management_macro(
+    dados_management=management_pais_ano,
+    dados_macro=paises_dados_limpo,
+    coluna_macro="Inflation",
+    nome_modelo="inflacao",
+    titulo_grafico="Gestão média e inflação",
+    rotulo_y="Inflação (%)",
+    transformar_log=False
+)
 
