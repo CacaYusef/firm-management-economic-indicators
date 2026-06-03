@@ -517,7 +517,7 @@ base_pib, modelo_pib = rodar_modelo_management_macro(
     dados_macro=paises_dados_limpo,
     coluna_macro="GDP per Capita",
     nome_modelo="log_gdp_per_capita",
-    titulo_grafico=" Eficiência das Empresas X Pib Per Capita \n Fonte: World Bank 2025",
+    titulo_grafico=" Eficiência das Empresas X Pib Per Capita \n Fonte: World Bank 2014",
     rotulo_y="Log do PIB per capita",
     transformar_log=True
 )
@@ -532,7 +532,7 @@ base_desemprego, modelo_desemprego = rodar_modelo_management_macro(
     dados_macro=paises_dados_limpo,
     coluna_macro="Unemployment Rate",
     nome_modelo="taxa_desemprego",
-    titulo_grafico="Eficiência das Empresas X Desemprego \n Fonte: World Bank 2025",
+    titulo_grafico="Eficiência das Empresas X Desemprego \n Fonte: World Bank 2014",
     rotulo_y="Taxa de desemprego (%)",
     transformar_log=False
 )
@@ -548,7 +548,7 @@ base_inflacao, modelo_inflacao = rodar_modelo_management_macro(
     dados_macro=paises_dados_limpo,
     coluna_macro="Inflation",
     nome_modelo="inflacao",
-    titulo_grafico="Eficiência das Empresas X Inflação \n Fonte: World Bank 2025",
+    titulo_grafico="Eficiência das Empresas X Inflação \n Fonte: World Bank 2014",
     rotulo_y="Inflação (%)",
     transformar_log=False
 )
