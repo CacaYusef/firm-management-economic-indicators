@@ -4,25 +4,36 @@ Created on Sat Apr 25 14:41:11 2026
 
 @author: Cacob
 """
-# ==========
-# PASSO 1
-# ==========
+# Este trabalho tem como objetivo investigar se melhores práticas de gestão empresarial
+# estão associadas a melhores indicadores econômicos em nível nacional.
+#
+# Para isso, são utilizadas duas bases de dados: uma base de eficiência e gestão das empresas,
+# inspirada na metodologia de Bloom e Van Reenen, e uma base de indicadores macroeconômicos
+# do World Bank Data 2025.
+#
+# A análise busca verificar a existência de correlações entre o índice médio de gestão das firmas
+# e variáveis econômicas agregadas, como PIB per capita, taxa de desemprego e inflação.
 
 
-from Regressoes import preparar_management_pais_ano, rodar_modelo_management_macro
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
-from pathlib import Path
-import scipy.stats as stats
-from Histogramas import ComparadorHistogramas
+# ===============================================
+# PASSO 1: Importanto as bibliotecas necessárias
+# ===============================================
+
+
+from Regressoes import preparar_management_pais_ano, rodar_modelo_management_macro # meu pacote de regressão linear
+import pandas as pd # pandas para manipulação de dados
+import matplotlib.pyplot as plt # matplot para gráficos
+import numpy as np # np para cálculos numéricos
+from pathlib import Path # Path para trabalhar com caminhos e diretórios
+import scipy.stats as stats # Stats para estatística avançada
+from Histogramas import ComparadorHistogramas # meu pacote para histogramas
 
 plt.style.use("ggplot")
 plt.rcParams["font.family"] = "monospace"
 
 
 # ========================================================
-# PASSO 2 (Setando o python pra funfar com esses dados)
+# PASSO 2: Tornando o diretório do trabalho relativo
 # ========================================================
 
 # Código para tornar o diretório da base de dados relativo (Executar em qualquer PC)
@@ -36,12 +47,11 @@ caminho_empresas = diretorio_base / "dados" / "Empresas.xlsx"
 caminho_macro = diretorio_base / "dados" / "world_bank_data_2025.csv"
 
 # Importa a planilha
-empresas = pd.read_excel(caminho_empresas)
+empresas = pd.read_excel(caminho_empresas) # dados com as avaliações das empresas de acordo com cada critério numa escala de 1 a 5
 empresas.info(memory_usage='deep') # examinando o tipo de arquivo de cada coluna
 
-paises_dados = pd.read_csv(caminho_macro)
+paises_dados = pd.read_csv(caminho_macro) # dados com as informações sobre dados economicos dos principais países nos ultimos anos
 paises_dados.info(memory_usage = " deep ")
-
 
 
 # tratando a base de dados macroeconomica
@@ -65,15 +75,15 @@ colunas_float32 = [
 ]
 
 for coluna in colunas_float32:
-    paises_dados[coluna] = paises_dados[coluna].astype("float32")
+    paises_dados[coluna] = paises_dados[coluna].astype("float32") # otimizando o tipo de arquivo das colunas via loop for, sem perder informação
 
-paises_dados = paises_dados.drop(columns=["Inflation (GDP Deflator, %)"])
+paises_dados = paises_dados.drop(columns=["Inflation (GDP Deflator, %)"]) # dropando coluna que não é de interesse para economizar memória e evitar confusão entre diferentes colunas "inflation"
 
 paises_dados_limpo = paises_dados.copy()
 
 paises_dados_limpo.columns = (
     paises_dados_limpo.columns
-    .str.replace(r"\s*\([^)]*\)", "", regex=True)
+    .str.replace(r"\s*\([^)]*\)", "", regex=True) # expressão regular para remover e apagar itens dos parentesis dentro das colunas
     .str.strip()
 )
 
@@ -86,7 +96,7 @@ condicoes = [
     (paises_dados_limpo["GDP per Capita"] > 1) & (paises_dados_limpo["GDP per Capita"] <= 8000),
     (paises_dados_limpo["GDP per Capita"] > 8000) & (paises_dados_limpo["GDP per Capita"] <= 16000),
     (paises_dados_limpo["GDP per Capita"] > 16000) & (paises_dados_limpo["GDP per Capita"] <= 30000),
-    (paises_dados_limpo["GDP per Capita"] > 30000)
+    (paises_dados_limpo["GDP per Capita"] > 30000) # categorizando o nível de renda dos países de acordo com a renda per capita
 ]
 
 categorias = ["baixo", "medio", "alto", "muito alto"]
@@ -94,28 +104,19 @@ categorias = ["baixo", "medio", "alto", "muito alto"]
 paises_dados_limpo["nível_pib_per_capita"] = np.select(
     condicoes,
     categorias,
-    default="sem_classificação"
+    default="sem_classificação"  # se nenhuma das categorias for aplicada, use "sem classificação" como valor, útil para dados faltantes.
 )
+
+
+
+
+# ====================================
+# PASSO 3 tratando a planilha empresas
+# ====================================
 
 # Planilha de empresas sem dados faltantes na coluna "talent6"
 # .copy() evita problemas posteriores ao criar novas colunas
 empresas = empresas.dropna(subset=["talent6"]).copy()
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ==========
-# PASSO 3
-# ==========
 
 empresas.rename(columns = {"wave": "year"}, inplace = True)
 
@@ -136,9 +137,9 @@ for nome_criterio, colunas in colunas_criterios.items():
 
 empresas["management"] = (empresas[["operations", "monitor", "people", "target"]].mean(axis=1).round(2)) # axis = 1 faz uma média linha a linha
 
-# ==========
-# PASSO 4
-# ==========
+# =======================================================================================
+# PASSO 4: Agrupando colunas semelhantes em uma única coluna que será a média das demais
+# =======================================================================================
 
 colunas_ranking = [
     "country","year","operations", "monitor",
@@ -151,9 +152,9 @@ ranking_países = (médias_por_critério.groupby("country", as_index=True).mean(
 
 ranking_ordenado = ranking_países.sort_values(by="management",ascending=True)
 
-# ==========
-# PASSO 5
-# ==========
+# ===================================================================================
+# PASSO 5 Gráfico de barras dos países com as melhores empresas em ordem decrescente
+# ===================================================================================
 
 plt.figure(figsize=(14, 6))
 
@@ -168,7 +169,7 @@ plt.barh(                      #plot gráfico de barras horizontal
 plt.tick_params(axis="y", labelsize=9)
 plt.tick_params(axis="x", labelsize=10)
 
-plt.title("Qualidade média da administração por país", fontsize=14, loc="center")
+plt.title("Qualidade média da administração por país \n Fonte: Bloom & Van Reenen (2015)", fontsize=14, loc="center")
 plt.xlabel("Nota média de administração", fontsize=12)
 
 plt.subplots_adjust(left=0.35)
@@ -243,7 +244,7 @@ comparacoes = [
 comparador.plotar_grade(comparacoes)
 
 # ============================================================
-# PASSO 8 BOX PLOT <- Para scatter plot precisei do amigo chat
+# PASSO 7: Visualizando a dispersão dos dados por BoxPlot
 # ============================================================
 
 fig, ax = plt.subplots(figsize=(8, 6))
@@ -293,9 +294,9 @@ ax.grid(axis="y", alpha=0.3)
 
 plt.show()
 
-# ==========================================
-# Passo 9 Medindo a confiabilidade dos Dados
-# ==========================================
+# ===========================================
+# Passo 8 Medindo a confiabilidade da Amostra
+# ===========================================
 
 paises = [
     "Brazil",
@@ -408,9 +409,7 @@ management_pais_ano = (
         numero_firmas=("management", "count")
     )
 )
-# ================
-#
-# ================
+
 macro_modelo = paises_dados_limpo.copy()
 
 # Garantindo que os nomes das colunas não tenham espaços escondidos
@@ -445,9 +444,9 @@ macro_modelo = macro_modelo[["country", "year", "GDP per Capita", "nível_pib_pe
 print("Base macro para modelo:")
 print(macro_modelo.head())
 
-# ============================================================
-# PASSO 11 - Merge Bases
-# ============================================================
+# =========================================================
+# PASSO 11: Juntando as bases para cálculo de Regressão
+# =========================================================
 
 merge_diagnostico = management_pais_ano.merge(
     macro_modelo,
@@ -456,9 +455,9 @@ merge_diagnostico = management_pais_ano.merge(
     indicator=True
 )
 
-# ============================================================
+# ======================================
 # PASSO 12 - Base final para regressão
-# ============================================================
+# ======================================
 
 base_modelo = management_pais_ano.merge(
     macro_modelo,
@@ -485,7 +484,7 @@ print("\nPaíses presentes na base final:")
 print(base_modelo["country"].unique())
 
 # ============================================================
-# PASSO 13 - Correlação simples
+# PASSO 13 - Correlação simples entre ppc e management
 # ============================================================
 
 correlacao = base_modelo["management_medio"].corr(
@@ -518,7 +517,7 @@ base_pib, modelo_pib = rodar_modelo_management_macro(
     dados_macro=paises_dados_limpo,
     coluna_macro="GDP per Capita",
     nome_modelo="log_gdp_per_capita",
-    titulo_grafico="Gestão média e PIB per capita",
+    titulo_grafico=" Eficiência das Empresas X Pib Per Capita \n Fonte: World Bank 2025",
     rotulo_y="Log do PIB per capita",
     transformar_log=True
 )
@@ -533,7 +532,7 @@ base_desemprego, modelo_desemprego = rodar_modelo_management_macro(
     dados_macro=paises_dados_limpo,
     coluna_macro="Unemployment Rate",
     nome_modelo="taxa_desemprego",
-    titulo_grafico="Gestão média e taxa de desemprego",
+    titulo_grafico="Eficiência das Empresas X Desemprego \n Fonte: World Bank 2025",
     rotulo_y="Taxa de desemprego (%)",
     transformar_log=False
 )
@@ -549,7 +548,7 @@ base_inflacao, modelo_inflacao = rodar_modelo_management_macro(
     dados_macro=paises_dados_limpo,
     coluna_macro="Inflation",
     nome_modelo="inflacao",
-    titulo_grafico="Gestão média e inflação",
+    titulo_grafico="Eficiência das Empresas X Inflação \n Fonte: World Bank 2025",
     rotulo_y="Inflação (%)",
     transformar_log=False
 )

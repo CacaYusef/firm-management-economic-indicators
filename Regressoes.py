@@ -150,7 +150,7 @@ def rodar_modelo_management_macro(
         base_representativa
         .sort_values(["nível_pib_per_capita", "dist_mediana_grupo"])
         .groupby("nível_pib_per_capita", group_keys=False)
-        .head(3)
+        .head(2)
         .copy()
     )
 
@@ -177,10 +177,10 @@ def rodar_modelo_management_macro(
     # ------------------------------------------------------------
 
     cores_grupos = {
-        "baixo": "#4C72B0",
-        "medio": "#55A868",
-        "alto": "#8172B3",
-        "muito alto": "#C44E52",
+        "baixo": "#bbadff",
+        "medio": "#6c5bc2",
+        "alto": "#261a66",
+        "muito alto": "#0a032b",
         "sem_classificacao": "#999999"
     }
 
