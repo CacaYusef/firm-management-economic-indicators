@@ -33,8 +33,8 @@ def rodar_modelo_management_macro(
     transformar_log=False,
     destacar_brasil=True
 ):
-    import numpy as np
-    import pandas as pd
+    import numpy as np # eu tava tendo bug em que não conseguia usar essa função sem importar os pacotes por dentro dela
+    import pandas as pd # não sei a razão desse bug! mas importar dessa forma resolveu
     import matplotlib.pyplot as plt
     import statsmodels.formula.api as smf
 
@@ -54,9 +54,9 @@ def rodar_modelo_management_macro(
     destacar_brasil: se True, destaca o Brasil em vermelho.
     """
 
-    # ------------------------------------------------------------
+    # ============================================================
     # Preparando base macro
-    # ------------------------------------------------------------
+    # ============================================================
 
     macro = dados_macro.copy()
     macro.columns = macro.columns.str.strip()
@@ -83,9 +83,9 @@ def rodar_modelo_management_macro(
         keep="first"
     ).copy()
 
-    # ------------------------------------------------------------
+    # ============================================================
     # Merge país-ano
-    # ------------------------------------------------------------
+    # ============================================================
 
     base = dados_management.merge(
         macro,
@@ -98,18 +98,18 @@ def rodar_modelo_management_macro(
         subset=["management_medio", coluna_macro]
     ).copy()
 
-    # ------------------------------------------------------------
+    # ============================================================
     # Criando variável dependente
-    # ------------------------------------------------------------
+    # ============================================================
 
     if transformar_log:
         base[nome_modelo] = np.log(base[coluna_macro])
     else:
         base[nome_modelo] = base[coluna_macro]
 
-    # ------------------------------------------------------------
+    # ============================================================
     # Correlação
-    # ------------------------------------------------------------
+    # ============================================================
 
     correlacao = base["management_medio"].corr(base[nome_modelo])
 
@@ -121,9 +121,9 @@ def rodar_modelo_management_macro(
     print("Países presentes:")
     print(base["country"].unique())
 
-    # ------------------------------------------------------------
+    # ============================================================
     # Regressão linear
-    # ------------------------------------------------------------
+    # ============================================================
 
     formula = f"{nome_modelo} ~ management_medio"
 
@@ -134,16 +134,16 @@ def rodar_modelo_management_macro(
 
     print(modelo.summary())
 
-    # ------------------------------------------------------------
+    # ============================================================
     # Selecionando países destacados
-    # ------------------------------------------------------------
+    # ============================================================
 
     base_representativa = base.copy()
 
     base_representativa["dist_mediana_grupo"] = (
         base_representativa
         .groupby("nível_pib_per_capita")["management_medio"]
-        .transform(lambda x: np.abs(x - x.median()))
+        .transform(lambda x: np.abs(x - x.median())) # países que de regressão dada suas respectivas categorias serão os escolhidos
     )
 
     paises_destaque = (
@@ -172,9 +172,9 @@ def rodar_modelo_management_macro(
         base.index.isin(paises_destaque.index)
     ].copy()
 
-    # ------------------------------------------------------------
+    # ============================================================
     # Gráfico
-    # ------------------------------------------------------------
+    # ============================================================
 
     cores_grupos = {
         "baixo": "#bbadff",
@@ -229,25 +229,40 @@ def rodar_modelo_management_macro(
                 label="Brazil"
             )
 
-    # Reta de regressão
+    # intervalos por onde a reta vai passar
+    
     x_linha = np.linspace(
         base["management_medio"].min(),
         base["management_medio"].max(),
         100
     )
 
-    y_linha = (
-        modelo.params["Intercept"]
-        + modelo.params["management_medio"] * x_linha
-    )
+    # Reta de regressão com intervalo de confiança
 
+    dados_predicao = pd.DataFrame({"management_medio": x_linha})
+    predicao = modelo.get_prediction(dados_predicao).summary_frame(alpha=0.05)
+    
+    y_linha = predicao["mean"]
+    limite_inferior = predicao["mean_ci_lower"]
+    limite_superior = predicao["mean_ci_upper"]
+    
+    ax.fill_between(
+    x_linha,
+    limite_inferior,
+    limite_superior,
+    color="black",
+    alpha=0.05,
+    linewidth=0,
+    label="IC 95%"
+    )
+    
     ax.plot(
         x_linha,
         y_linha,
-        color="black",
-        linestyle="--",
-        linewidth=1.25,
-        label="Regressão linear"
+        color="#262626",
+        linestyle="-",
+        linewidth=1.15,
+        label="Linha de Regressão"
     )
 
     # Rótulos dos países destacados
