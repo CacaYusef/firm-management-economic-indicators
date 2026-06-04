@@ -5,7 +5,19 @@ Created on Tue Jun  2 18:51:01 2026
 @author: Lenovo
 """
 
+# ============================================================
+# FUNÇÃO 1 - Preparando a base de gestão no nível país-ano
+# ============================================================
+
 def preparar_management_pais_ano(medias_por_criterio):
+    """
+    Esta função recebe a base médias_por_criterio, que ainda está no nível da firma,
+    e agrega os dados para o nível país-ano.
+
+    Ou seja, se houver várias empresas do Brasil em 2004, a função calcula a média
+    de management dessas empresas e cria uma única linha para Brazil-2004.
+    """
+
     management_pais_ano = (
         medias_por_criterio
         .groupby(["country", "year"], as_index=False)
@@ -23,6 +35,11 @@ def preparar_management_pais_ano(medias_por_criterio):
 
     return management_pais_ano
 
+
+# ============================================================
+# FUNÇÃO 2 - Rodando regressão entre management e variável macro
+# ============================================================
+
 def rodar_modelo_management_macro(
     dados_management,
     dados_macro,
@@ -33,37 +50,66 @@ def rodar_modelo_management_macro(
     transformar_log=False,
     destacar_brasil=True
 ):
-    import numpy as np # eu tava tendo bug em que não conseguia usar essa função sem importar os pacotes por dentro dela
-    import pandas as pd # não sei a razão desse bug! mas importar dessa forma resolveu
+    """
+    Esta função roda uma regressão linear simples entre o índice médio de gestão
+    e uma variável macroeconômica escolhida.
+
+    A ideia geral do modelo é:
+
+        variável_macro = intercepto + beta * management_medio + erro
+
+    A função também cria o gráfico de dispersão com:
+    - pontos em cinza para os demais países;
+    - pontos destacados por nível de PIB per capita;
+    - Brasil destacado em vermelho;
+    - linha de regressão;
+    - intervalo de confiança ao redor da linha.
+    """
+
+    # ============================================================
+    # Importando pacotes dentro da função
+    # ============================================================
+    # Estes imports estão aqui dentro porque, no Spyder/Jupyter,
+    # houve bug de escopo/importação ao chamar a função a partir de outro arquivo.
+
+    import numpy as np
+    import pandas as pd
     import matplotlib.pyplot as plt
     import statsmodels.formula.api as smf
 
-    # resto da função continua igual
-
-    """
-    Roda regressão linear simples entre management médio e uma variável macroeconômica.
-
-    Parâmetros:
-    dados_management: DataFrame agregado no nível país-ano.
-    dados_macro: DataFrame macroeconômico.
-    coluna_macro: nome da coluna macroeconômica usada como variável dependente.
-    nome_modelo: nome interno da variável dependente no modelo.
-    titulo_grafico: título do gráfico.
-    rotulo_y: rótulo do eixo y.
-    transformar_log: se True, aplica log na variável macro.
-    destacar_brasil: se True, destaca o Brasil em vermelho.
-    """
 
     # ============================================================
-    # Preparando base macro
+    # PASSO 1 - Criando uma cópia da base macroeconômica
     # ============================================================
+    # A cópia evita alterar diretamente a base original usada no arquivo principal.
 
     macro = dados_macro.copy()
+
+    # Remove espaços escondidos nos nomes das colunas
     macro.columns = macro.columns.str.strip()
 
-    macro["year"] = pd.to_numeric(macro["year"],).astype("Int16")
 
-    macro["country"] = (macro["country"].astype(str).str.strip())
+    # ============================================================
+    # PASSO 2 - Padronizando as colunas de ano e país
+    # ============================================================
+    # O merge será feito usando country e year.
+    # Por isso, essas duas colunas precisam estar limpas e compatíveis
+    # nas duas bases: gestão e macroeconomia.
+
+    macro["year"] = pd.to_numeric(macro["year"]).astype("Int16")
+
+    macro["country"] = (
+        macro["country"]
+        .astype(str)
+        .str.strip()
+    )
+
+
+    # ============================================================
+    # PASSO 3 - Ajustando nomes de países
+    # ============================================================
+    # Algumas bases usam nomes diferentes para o mesmo país.
+    # Aqui, os nomes são ajustados para bater com a base de empresas.
 
     mapa_paises = {
         "United Kingdom": "Great Britain",
@@ -74,18 +120,59 @@ def rodar_modelo_management_macro(
 
     macro["country"] = macro["country"].replace(mapa_paises)
 
-    macro[coluna_macro] = pd.to_numeric(macro[coluna_macro],)
 
-    macro = macro[["country","year",coluna_macro,"nível_pib_per_capita"]].copy()
+    # ============================================================
+    # PASSO 4 - Convertendo a variável macroeconômica para número
+    # ============================================================
+    # A variável macro é escolhida na chamada da função.
+    # Exemplos:
+    # - GDP per Capita
+    # - Unemployment Rate
+    # - Inflation
+
+    macro[coluna_macro] = pd.to_numeric(macro[coluna_macro])
+
+
+    # ============================================================
+    # PASSO 5 - Selecionando apenas as colunas necessárias
+    # ============================================================
+    # A função precisa apenas de:
+    # - país
+    # - ano
+    # - variável macroeconômica escolhida
+    # - nível de PIB per capita para colorir os grupos no gráfico
+
+    macro = macro[
+        [
+            "country",
+            "year",
+            coluna_macro,
+            "nível_pib_per_capita"
+        ]
+    ].copy()
+
+
+    # ============================================================
+    # PASSO 6 - Removendo duplicatas país-ano na base macro
+    # ============================================================
+    # Em tese, a base macro deveria ter apenas uma linha por país e ano.
+    # Esse comando evita problema caso exista alguma repetição.
 
     macro = macro.drop_duplicates(
         subset=["country", "year"],
         keep="first"
     ).copy()
 
+
     # ============================================================
-    # Merge país-ano
+    # PASSO 7 - Fazendo o merge entre gestão e macroeconomia
     # ============================================================
+    # Aqui juntamos:
+    # - dados_management: base de gestão agregada por país-ano
+    # - macro: base macroeconômica também no nível país-ano
+    #
+    # O validate="one_to_one" garante que a junção seja uma linha para uma linha.
+    # Se houver duplicatas em country-year, o pandas acusa erro.
 
     base = dados_management.merge(
         macro,
@@ -94,22 +181,40 @@ def rodar_modelo_management_macro(
         validate="one_to_one"
     )
 
+
+    # ============================================================
+    # PASSO 8 - Removendo dados faltantes
+    # ============================================================
+    # A regressão só pode ser feita com observações que tenham:
+    # - management_medio
+    # - variável macroeconômica escolhida
+
     base = base.dropna(
         subset=["management_medio", coluna_macro]
     ).copy()
 
+
     # ============================================================
-    # Criando variável dependente
+    # PASSO 9 - Criando a variável dependente do modelo
     # ============================================================
+    # Se transformar_log=True, a variável macro será usada em log.
+    # Isso foi usado no caso do PIB per capita.
+    #
+    # Se transformar_log=False, a variável entra no modelo em nível.
+    # Isso foi usado para desemprego e inflação.
 
     if transformar_log:
         base[nome_modelo] = np.log(base[coluna_macro])
     else:
         base[nome_modelo] = base[coluna_macro]
 
+
     # ============================================================
-    # Correlação
+    # PASSO 10 - Calculando a correlação simples
     # ============================================================
+    # Esta correlação mede a associação linear entre:
+    # - management_medio
+    # - variável macroeconômica escolhida
 
     correlacao = base["management_medio"].corr(base[nome_modelo])
 
@@ -121,9 +226,15 @@ def rodar_modelo_management_macro(
     print("Países presentes:")
     print(base["country"].unique())
 
+
     # ============================================================
-    # Regressão linear
+    # PASSO 11 - Estimando a regressão linear simples
     # ============================================================
+    # A fórmula estimada é:
+    #
+    #   variável_macro = intercepto + beta * management_medio + erro
+    #
+    # O cov_type="HC3" usa erro-padrão robusto à heterocedasticidade.
 
     formula = f"{nome_modelo} ~ management_medio"
 
@@ -134,17 +245,28 @@ def rodar_modelo_management_macro(
 
     print(modelo.summary())
 
+
     # ============================================================
-    # Selecionando países destacados
+    # PASSO 12 - Selecionando países para destaque no gráfico
     # ============================================================
+    # A ideia é não rotular todos os países, porque isso poluiria o gráfico.
+    # Então, dentro de cada nível de PIB per capita, são escolhidos países
+    # mais próximos da mediana do próprio grupo.
 
     base_representativa = base.copy()
 
     base_representativa["dist_mediana_grupo"] = (
         base_representativa
         .groupby("nível_pib_per_capita")["management_medio"]
-        .transform(lambda x: np.abs(x - x.median())) # países que de regressão dada suas respectivas categorias serão os escolhidos
+        .transform(lambda x: np.abs(x - x.median()))
     )
+
+
+    # ============================================================
+    # PASSO 13 - Pegando os países mais representativos de cada grupo
+    # ============================================================
+    # O .head(2) seleciona dois países por grupo.
+    # Esses países serão coloridos e receberão rótulo no gráfico.
 
     paises_destaque = (
         base_representativa
@@ -153,6 +275,13 @@ def rodar_modelo_management_macro(
         .head(2)
         .copy()
     )
+
+
+    # ============================================================
+    # PASSO 14 - Garantindo destaque para o Brasil
+    # ============================================================
+    # Independentemente da seleção automática acima,
+    # o Brasil será incluído entre os países destacados.
 
     if destacar_brasil:
         brasil = base[base["country"] == "Brazil"].copy()
@@ -164,6 +293,13 @@ def rodar_modelo_management_macro(
                 .copy()
             )
 
+
+    # ============================================================
+    # PASSO 15 - Separando pontos de fundo e pontos destacados
+    # ============================================================
+    # base_fundo: países que aparecem em cinza no gráfico.
+    # base_colorida: países destacados por nível de PIB per capita.
+
     base_fundo = base[
         ~base.index.isin(paises_destaque.index)
     ].copy()
@@ -172,9 +308,12 @@ def rodar_modelo_management_macro(
         base.index.isin(paises_destaque.index)
     ].copy()
 
+
     # ============================================================
-    # Gráfico
+    # PASSO 16 - Definindo paleta de cores do gráfico
     # ============================================================
+    # Os grupos de PIB per capita recebem tons diferentes.
+    # O Brasil recebe uma cor própria, em vermelho.
 
     cores_grupos = {
         "baixo": "#bbadff",
@@ -186,9 +325,19 @@ def rodar_modelo_management_macro(
 
     cor_brasil = "#B22222"
 
+
+    # ============================================================
+    # PASSO 17 - Criando a figura e os eixos do gráfico
+    # ============================================================
+
     fig, ax = plt.subplots(figsize=(8, 6))
 
-    # Demais países em cinza
+
+    # ============================================================
+    # PASSO 18 - Plotando os demais países em cinza
+    # ============================================================
+    # Estes pontos formam o fundo do gráfico e não recebem rótulo.
+
     ax.scatter(
         base_fundo["management_medio"],
         base_fundo[nome_modelo],
@@ -199,7 +348,13 @@ def rodar_modelo_management_macro(
         label="Demais países"
     )
 
-    # Países destacados por nível de PIB per capita
+
+    # ============================================================
+    # PASSO 19 - Plotando os países destacados
+    # ============================================================
+    # Os países destacados são coloridos conforme o nível de PIB per capita.
+    # O Brasil é separado dos demais para receber uma cor especial.
+
     for grupo, dados_grupo in base_colorida.groupby("nível_pib_per_capita"):
 
         dados_brasil = dados_grupo[dados_grupo["country"] == "Brazil"]
@@ -229,33 +384,60 @@ def rodar_modelo_management_macro(
                 label="Brazil"
             )
 
-    # intervalos por onde a reta vai passar
-    
+
+    # ============================================================
+    # PASSO 20 - Criando os valores de x para a linha de regressão
+    # ============================================================
+    # x_linha cria 100 valores igualmente espaçados entre o menor e o maior
+    # valor de management_medio. Esses pontos serão usados para desenhar
+    # a linha de regressão de forma contínua.
+
     x_linha = np.linspace(
         base["management_medio"].min(),
         base["management_medio"].max(),
         100
     )
 
-    # Reta de regressão com intervalo de confiança
 
-    dados_predicao = pd.DataFrame({"management_medio": x_linha})
+    # ============================================================
+    # PASSO 21 - Calculando previsão e intervalo de confiança
+    # ============================================================
+    # O modelo calcula o valor previsto de y para cada valor de x_linha.
+    # Também são calculados os limites inferior e superior do intervalo
+    # de confiança de 95% da média prevista.
+
+    dados_predicao = pd.DataFrame({
+        "management_medio": x_linha
+    })
+
     predicao = modelo.get_prediction(dados_predicao).summary_frame(alpha=0.05)
-    
+
     y_linha = predicao["mean"]
     limite_inferior = predicao["mean_ci_lower"]
     limite_superior = predicao["mean_ci_upper"]
-    
+
+
+    # ============================================================
+    # PASSO 22 - Plotando o intervalo de confiança
+    # ============================================================
+    # A função fill_between cria o sombreado ao redor da linha de regressão,
+    # parecido com o geom_smooth do R.
+
     ax.fill_between(
-    x_linha,
-    limite_inferior,
-    limite_superior,
-    color="black",
-    alpha=0.05,
-    linewidth=0,
-    label="IC 95%"
+        x_linha,
+        limite_inferior,
+        limite_superior,
+        color="black",
+        alpha=0.05,
+        linewidth=0,
+        label="IC 95%"
     )
-    
+
+
+    # ============================================================
+    # PASSO 23 - Plotando a linha de regressão
+    # ============================================================
+
     ax.plot(
         x_linha,
         y_linha,
@@ -265,7 +447,13 @@ def rodar_modelo_management_macro(
         label="Linha de Regressão"
     )
 
-    # Rótulos dos países destacados
+
+    # ============================================================
+    # PASSO 24 - Adicionando rótulos aos países destacados
+    # ============================================================
+    # Apenas os países destacados recebem nome.
+    # O Brasil recebe fonte em vermelho e negrito.
+
     for _, linha in base_colorida.iterrows():
 
         if linha["country"] == "Brazil":
@@ -288,6 +476,11 @@ def rodar_modelo_management_macro(
                 color="black"
             )
 
+
+    # ============================================================
+    # PASSO 25 - Configurando título, eixos e grade
+    # ============================================================
+
     ax.set_title(titulo_grafico, fontsize=13)
     ax.set_xlabel("Índice médio de gestão", fontsize=11)
     ax.set_ylabel(rotulo_y, fontsize=11)
@@ -299,8 +492,21 @@ def rodar_modelo_management_macro(
         alpha=0.6
     )
 
+
+    # ============================================================
+    # PASSO 26 - Removendo bordas superiores e laterais
+    # ============================================================
+    # Isso deixa o gráfico com aparência mais limpa.
+
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
+
+
+    # ============================================================
+    # PASSO 27 - Ajustando a legenda
+    # ============================================================
+    # Como alguns grupos podem aparecer mais de uma vez, removemos duplicatas
+    # da legenda usando um dicionário.
 
     handles, labels = ax.get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
@@ -312,6 +518,14 @@ def rodar_modelo_management_macro(
         fontsize=8,
         title="Nível de PIB per capita"
     )
+
+
+    # ============================================================
+    # PASSO 28 - Exibindo o gráfico e retornando resultados
+    # ============================================================
+    # A função retorna:
+    # - base: DataFrame final usado na regressão
+    # - modelo: resultado estimado pelo statsmodels
 
     plt.tight_layout()
     plt.show()
