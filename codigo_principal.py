@@ -169,8 +169,8 @@ plt.barh(                      #plot gráfico de barras horizontal
 plt.tick_params(axis="y", labelsize=9)
 plt.tick_params(axis="x", labelsize=10)
 
-plt.title("Qualidade média da administração por país \n Fonte: Bloom & Van Reenen (2015)", fontsize=14, loc="center")
-plt.xlabel("Nota média de administração", fontsize=12)
+plt.title("Eficiência de gestão das empresas por país \n Fonte: Bloom & Van Reenen (2015)", fontsize=14, loc="center")
+plt.xlabel("Índice médio de gestão", fontsize=12)
 
 plt.subplots_adjust(left=0.35)
 plt.xlim(0, 5)
@@ -286,7 +286,7 @@ for posicao, pais in zip(posicoes, labels):
         linewidth=0.3, 
         zorder=3)
 
-ax.set_title("Distribuição das notas de administração por país", fontsize=12)
+ax.set_title("Distribuição das notas de administração", fontsize=12)
 ax.set_ylabel("Nota média de administração")
 ax.set_ylim(1, 5)
 
@@ -517,7 +517,7 @@ base_pib, modelo_pib = rodar_modelo_management_macro(
     dados_macro=paises_dados_limpo,
     coluna_macro="GDP per Capita",
     nome_modelo="log_gdp_per_capita",
-    titulo_grafico=" Eficiência das Empresas X Pib Per Capita \n Fonte: World Bank 2014",
+    titulo_grafico=" Associação entre gestão média e PIB per capita \n Fonte: World Bank 2010-2015",
     rotulo_y="Log do PIB per capita",
     transformar_log=True
 )
@@ -532,7 +532,7 @@ base_desemprego, modelo_desemprego = rodar_modelo_management_macro(
     dados_macro=paises_dados_limpo,
     coluna_macro="Unemployment Rate",
     nome_modelo="taxa_desemprego",
-    titulo_grafico="Eficiência das Empresas X Desemprego \n Fonte: World Bank 2014",
+    titulo_grafico=" Associação entre gestão média e desemprego \n Fonte: World Bank 2010-2015",
     rotulo_y="Taxa de desemprego (%)",
     transformar_log=False
 )
@@ -548,7 +548,7 @@ base_inflacao, modelo_inflacao = rodar_modelo_management_macro(
     dados_macro=paises_dados_limpo,
     coluna_macro="Inflation",
     nome_modelo="inflacao",
-    titulo_grafico="Eficiência das Empresas X Inflação \n Fonte: World Bank 2014",
+    titulo_grafico="Associação entre gestão média e inflação \n Fonte: World Bank 2010-2015",
     rotulo_y="Inflação (%)",
     transformar_log=False
 )
